@@ -1,71 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types.ts';
 import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService.ts';
 import HandoutViewer from './components/HandoutViewer.tsx';
 import HomeworkViewer from './components/HomeworkViewer.tsx';
 
-type WizardStep = 'welcome' | 'publisher' | 'grade' | 'library' | 'display';
-
-const App: React.FC = () => {
-  const [step, setStep] = useState<WizardStep>('welcome');
+export default function App() {
+  const [step, setStep] = useState<'welcome' | 'setup' | 'units' | 'display'>('welcome');
   const [loading, setLoading] = useState(false);
   const [params, setParams] = useState<SelectionParams>({
-    year: '114',
+    year: '113',
     publisher: '康軒',
-    grade: '一年級',
     semester: '上',
+    grade: '一年級',
     difficulty: '易'
   });
-
+  
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [activeContent, setActiveContent] = useState<{
-    type: 'handout' | 'homework';
-    data: any;
-  } | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<{chapter: string, sub: string} | null>(null);
+  const [activeContent, setActiveContent] = useState<{ type: 'handout' | 'homework', data: any } | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<{ chapter: string, sub: string } | null>(null);
 
-  useEffect(() => {
-    console.log("✨ App Mounted Successfully");
-  }, []);
-
-  const handleFetchLibrary = async () => {
+  const startMagic = async () => {
     setLoading(true);
     try {
       const data = await fetchChapters(params);
-      setChapters(data || []);
-      setStep('library');
-    } catch (e) {
-      console.error(e);
-      alert("載入目錄失敗，請確認 API Key 是否設定正確。");
+      setChapters(data);
+      setStep('units');
+    } catch (err) {
+      alert("載入失敗：" + (err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerateHandout = async (chapter: string, sub: string) => {
+  const createHandout = async (chapter: string, sub: string) => {
     setSelectedUnit({ chapter, sub });
     setLoading(true);
     try {
       const content = await generateHandoutFromText(params, chapter, sub);
       setActiveContent({ type: 'handout', data: content });
       setStep('display');
-    } catch (e) {
-      alert("生成失敗，請稍後再試。");
+    } catch (err) {
+      alert("魔法失敗，請再試一次");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerateHomework = async () => {
+  const createHomework = async () => {
     if (!selectedUnit) return;
     setLoading(true);
     try {
-      const config: HomeworkConfig = { calculationCount: 3, wordProblemCount: 2, difficulty: '易' };
-      const content = await generateHomework(params, selectedUnit.chapter, selectedUnit.sub, config);
+      const content = await generateHomework(params, selectedUnit.chapter, selectedUnit.sub, {
+        calculationCount: 3,
+        wordProblemCount: 2,
+        difficulty: '易'
+      });
       setActiveContent({ type: 'homework', data: content });
-      setStep('display');
-    } catch (e) {
-      alert("隨堂卷生成失敗。");
+    } catch (err) {
+      alert("隨堂卷製作失敗");
     } finally {
       setLoading(false);
     }
@@ -73,164 +65,155 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-10">
-        <div className="w-20 h-20 border-[10px] border-slate-100 border-t-blue-600 rounded-full animate-spin mb-8"></div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">魔法正在處理中...</h2>
-        <p className="text-slate-400 mt-4 font-bold animate-pulse text-lg">大約需要 15-20 秒，請稍候</p>
+      <div className="fixed inset-0 bg-white/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-10">
+        <div className="w-24 h-24 border-8 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-10 shadow-2xl"></div>
+        <h2 className="text-4xl font-black text-slate-900 mb-4">🔮 正在施法中...</h2>
+        <p className="text-slate-400 font-bold text-xl animate-pulse">正在為孩子客製化專屬教材</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 selection:bg-blue-100">
-      <header className="no-print bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 py-4 px-8 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setStep('welcome')}>
-          <span className="text-2xl drop-shadow-sm">✨</span>
-          <h1 className="text-lg font-black text-slate-900 tracking-tight">魔法數學助手</h1>
+    <div className="min-h-screen bg-slate-50">
+      {/* 導航欄 */}
+      <nav className="no-print bg-white border-b border-slate-200 sticky top-0 z-40 px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setStep('welcome')}>
+          <span className="text-3xl">🧙‍♂️</span>
+          <span className="text-xl font-black text-slate-900">魔法數學助手</span>
         </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => (window as any).aistudio?.openSelectKey?.()}
-            className="bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-black shadow-lg hover:bg-black transition-all"
-          >
-            🔑 設定金鑰
-          </button>
-        </div>
-      </header>
+        <button 
+          onClick={() => (window as any).aistudio?.openSelectKey?.()}
+          className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+        >
+          🔑 金鑰設定
+        </button>
+      </nav>
 
-      <main className="max-w-5xl mx-auto py-12 px-6">
+      <main className="max-w-6xl mx-auto py-12 px-6">
         {step === 'welcome' && (
-          <div className="wizard-card text-center py-20 bg-white rounded-[4rem] shadow-xl border border-slate-100 px-10">
-            <div className="text-9xl mb-10 filter drop-shadow-xl">🧙‍♂️</div>
-            <h2 className="text-5xl md:text-6xl font-black text-slate-900 mb-8 leading-tight">讓資源班數學<br/><span className="text-blue-600 italic">變簡單了！</span></h2>
-            <p className="text-xl md:text-2xl text-slate-400 mb-16 font-bold max-w-2xl mx-auto leading-relaxed">
-              專為特教老師打造。選擇版本、單元，<br/>
-              一鍵生成符合需求的精美講義與隨堂卷。
-            </p>
+          <div className="text-center py-20 bg-white rounded-[4rem] shadow-2xl border border-slate-100 p-12">
+            <div className="text-[10rem] mb-12 animate-bounce">✨</div>
+            <h1 className="text-6xl font-black text-slate-900 mb-6 leading-tight">數學變簡單的<br/><span className="text-blue-600 underline decoration-8 underline-offset-8">魔法開始了</span></h1>
+            <p className="text-2xl text-slate-400 font-bold mb-16 max-w-2xl mx-auto">專為資源班與特教需求設計，一鍵生成符合出版社進度的精美教材。</p>
             <button 
-              onClick={() => setStep('publisher')}
-              className="bg-blue-600 text-white px-12 py-7 rounded-[2.5rem] text-2xl font-black shadow-2xl hover:bg-blue-700 hover:scale-105 transition-all active:scale-95"
+              onClick={() => setStep('setup')}
+              className="bg-blue-600 text-white px-16 py-8 rounded-[3rem] text-3xl font-black shadow-2xl shadow-blue-200 hover:scale-105 active:scale-95 transition-all"
             >
-              開始施放魔法 ➔
+              進入魔法屋 ➔
             </button>
           </div>
         )}
 
-        {step === 'publisher' && (
-          <div className="wizard-card">
-            <h2 className="text-4xl font-black text-slate-800 mb-12 text-center tracking-tight">請選擇教材出版社</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {['康軒', '南一', '翰林'].map(p => (
-                <button 
-                  key={p}
-                  onClick={() => {
-                    setParams({ ...params, publisher: p as any });
-                    setStep('grade');
-                  }}
-                  className="bg-white group p-12 rounded-[3.5rem] shadow-sm border-4 border-transparent hover:border-blue-500 hover:shadow-2xl transition-all"
-                >
-                  <div className="text-7xl mb-6 group-hover:scale-110 transition-transform">📖</div>
-                  <div className="text-3xl font-black text-slate-700">{p}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 'grade' && (
-          <div className="wizard-card max-w-2xl mx-auto">
-            <h2 className="text-4xl font-black text-slate-800 mb-10 text-center tracking-tight">選擇年級與學期</h2>
-            <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-slate-100">
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {['一年級', '二年級', '三年級', '四年級', '五年級', '六年級'].map(g => (
-                  <button 
-                    key={g}
-                    onClick={() => setParams({...params, grade: g as any})}
-                    className={`py-4 rounded-2xl font-black text-lg border-4 transition-all ${params.grade === g ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-3 mb-10">
-                {['上', '下'].map(s => (
-                  <button 
-                    key={s}
-                    onClick={() => setParams({...params, semester: s as any})}
-                    className={`flex-1 py-4 rounded-2xl font-black text-lg border-4 transition-all ${params.semester === s ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-50 border-transparent text-slate-400'}`}
-                  >
-                    {s}學期
-                  </button>
-                ))}
-              </div>
-              <button 
-                onClick={handleFetchLibrary}
-                className="w-full bg-slate-900 text-white py-6 rounded-[2rem] text-xl font-black shadow-xl hover:bg-black transition-all"
-              >
-                尋找對應章節 ➔
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 'library' && (
-          <div className="wizard-card">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                {params.publisher} {params.grade}{params.semester} 目錄
-              </h2>
-              <button onClick={() => setStep('grade')} className="text-slate-400 font-bold hover:text-slate-600 transition-colors">← 返回修改設定</button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {chapters.length > 0 ? chapters.map(c => (
-                <div key={c.id} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200 hover:border-blue-200 transition-colors">
-                  <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-start gap-3">
-                    <span className="text-blue-500">#{c.id}</span>
-                    <span>{c.title}</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {c.subChapters.map((sub, idx) => (
+        {step === 'setup' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100">
+              <h2 className="text-3xl font-black text-slate-800 mb-10">第一步：設定教材來源</h2>
+              
+              <div className="space-y-8">
+                <section>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest block mb-4">1. 選擇出版社</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    {['康軒', '南一', '翰林'].map(p => (
                       <button 
-                        key={idx}
-                        onClick={() => handleGenerateHandout(c.title, sub)}
-                        className="w-full text-left p-4 rounded-xl font-bold text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition-all flex justify-between items-center group"
+                        key={p}
+                        onClick={() => setParams({...params, publisher: p as any})}
+                        className={`py-6 rounded-3xl font-black text-xl border-4 transition-all ${params.publisher === p ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
                       >
-                        <span className="truncate pr-2">{sub}</span>
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">🪄</span>
+                        {p}
                       </button>
                     ))}
                   </div>
-                </div>
-              )) : (
-                <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-                  <p className="text-slate-300 text-2xl font-black italic">未搜尋到目錄內容，請嘗試重新設定...</p>
-                </div>
-              )}
+                </section>
+
+                <section>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest block mb-4">2. 選擇年級</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {['一年級', '二年級', '三年級', '四年級', '五年級', '六年級'].map(g => (
+                      <button 
+                        key={g}
+                        onClick={() => setParams({...params, grade: g as any})}
+                        className={`py-4 rounded-2xl font-black border-2 transition-all ${params.grade === g ? 'bg-slate-900 border-slate-900 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400'}`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <button 
+                  onClick={startMagic}
+                  className="w-full bg-blue-600 text-white py-8 rounded-[2.5rem] text-2xl font-black shadow-xl hover:shadow-blue-200 hover:bg-blue-700 transition-all"
+                >
+                  尋找對應單元 ➔
+                </button>
+              </div>
             </div>
+
+            <div className="flex flex-col justify-center items-center text-center p-10 opacity-50">
+              <div className="text-8xl mb-8">📚</div>
+              <p className="text-2xl font-bold text-slate-400 italic">「好的教材是通往成功的階梯」</p>
+            </div>
+          </div>
+        )}
+
+        {step === 'units' && (
+          <div className="animate-in fade-in duration-500">
+             <div className="flex justify-between items-end mb-12">
+               <div>
+                  <h2 className="text-4xl font-black text-slate-900 mb-2">{params.publisher} {params.grade} 目錄</h2>
+                  <p className="text-slate-400 font-bold text-lg">請點選您要製作的單元小節：</p>
+               </div>
+               <button onClick={() => setStep('setup')} className="text-blue-600 font-black hover:underline underline-offset-4">重新設定教材參數</button>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {chapters.map(c => (
+                  <div key={c.id} className="bg-white rounded-[3rem] p-10 shadow-lg border border-slate-100 hover:border-blue-200 transition-all group">
+                    <h3 className="text-2xl font-black text-slate-800 mb-8 border-b-4 border-blue-50 pb-4 flex items-center gap-3">
+                      <span className="text-blue-500 text-3xl">#</span> {c.title}
+                    </h3>
+                    <div className="space-y-3">
+                      {c.subChapters.map((sub, i) => (
+                        <button 
+                          key={i}
+                          onClick={() => createHandout(c.title, sub)}
+                          className="w-full text-left p-5 rounded-2xl font-bold text-slate-600 hover:bg-blue-600 hover:text-white transition-all flex justify-between items-center group/btn shadow-sm hover:shadow-md"
+                        >
+                          <span className="text-xl">{sub}</span>
+                          <span className="opacity-0 group-hover/btn:opacity-100 text-2xl">🪄</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+             </div>
+             
+             {/* 來源顯示 (Google Search Grounding 規範) */}
+             {chapters[0]?.sourceUrls && (
+                <div className="mt-20 p-8 border-t-2 border-slate-100">
+                  <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">搜尋來源：</p>
+                  <div className="flex flex-wrap gap-4">
+                    {Array.from(new Set(chapters.flatMap(c => c.sourceUrls || []))).map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1 opacity-60 hover:opacity-100">
+                        🔗 {new URL(url).hostname}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+             )}
           </div>
         )}
 
         {step === 'display' && activeContent && (
-          <div className="wizard-card space-y-10">
-            <div className="no-print flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 gap-4">
-              <div className="flex gap-3">
-                <button onClick={() => setStep('library')} className="px-6 py-2.5 rounded-xl font-black text-slate-500 hover:bg-slate-50 border border-slate-200">← 目錄</button>
+          <div className="space-y-12">
+            <div className="no-print bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-wrap gap-4 justify-between items-center sticky top-24 z-30">
+              <div className="flex gap-4">
+                <button onClick={() => setStep('units')} className="bg-slate-100 px-6 py-3 rounded-2xl font-black text-slate-600">← 返回目錄</button>
                 {activeContent.type === 'handout' && (
-                  <button 
-                    onClick={handleGenerateHomework}
-                    className="bg-orange-500 text-white px-8 py-2.5 rounded-xl font-black shadow-lg hover:bg-orange-600 transition-all"
-                  >
-                    生成對應隨堂卷 ➔
-                  </button>
+                  <button onClick={createHomework} className="bg-orange-500 text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:bg-orange-600">生成隨堂練習 ➔</button>
                 )}
               </div>
-              <button 
-                onClick={() => window.print()}
-                className="bg-slate-900 text-white px-10 py-2.5 rounded-xl font-black shadow-xl hover:bg-black transition-all"
-              >
-                🖨️ 列印文件
-              </button>
+              <button onClick={() => window.print()} className="bg-slate-900 text-white px-10 py-3 rounded-2xl font-black shadow-2xl">🖨️ 直接列印</button>
             </div>
 
             {activeContent.type === 'handout' ? (
@@ -242,11 +225,9 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="no-print py-20 text-center text-slate-300 font-bold tracking-widest text-xs uppercase">
-        資源班教學助手 • 用科技傳遞溫暖
+      <footer className="no-print py-20 text-center opacity-30 text-xs font-black tracking-[0.5em] uppercase pointer-events-none">
+        Special Education Magic Helper • 2024
       </footer>
     </div>
   );
-};
-
-export default App;
+}
