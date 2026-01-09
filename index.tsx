@@ -5,10 +5,11 @@ import App from './App.tsx';
 const hideLoader = () => {
   const loader = document.getElementById('initial-loader');
   if (loader) {
+    loader.style.transition = 'opacity 0.5s ease';
     loader.style.opacity = '0';
     setTimeout(() => {
       loader.style.display = 'none';
-    }, 400);
+    }, 500);
   }
 };
 
@@ -18,17 +19,17 @@ if (container) {
   try {
     const root = createRoot(container);
     
-    // 在開始渲染的微任務中關閉載入條
-    // 這可以確保使用者能盡快看到 React 噴出的錯誤或介面
+    // 渲染 App
     root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
 
-    // 確保渲染被排入隊列後隱藏載入畫面
+    // 在下一幀立即隱藏載入畫面，避免 React 渲染延遲導致的白屏感
     requestAnimationFrame(() => {
-      hideLoader();
+      // 給予一點點緩衝時間讓瀏覽器處理初次渲染
+      setTimeout(hideLoader, 100);
     });
 
   } catch (error) {
@@ -38,6 +39,5 @@ if (container) {
     if (debug) debug.innerText = "❌ 渲染錯誤: " + (error instanceof Error ? error.message : "未知");
   }
 } else {
-  console.error("找不到 #root 節點");
   hideLoader();
 }
