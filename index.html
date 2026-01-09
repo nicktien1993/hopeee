@@ -6,15 +6,17 @@
     <title>✨ 魔法數學助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // 墊片：防止環境變數缺失報錯
-      window.process = { env: { API_KEY: "" } };
+      // 墊片：僅在環境變數不存在時才初始化，避免覆蓋系統注入的 Key
+      if (typeof window.process === 'undefined') {
+        window.process = { env: { API_KEY: "" } };
+      }
       
-      // 偵錯監控
-      window.addEventListener('error', (e) => {
-        console.error("Global error caught:", e.message);
-        const msg = document.getElementById('debug-msg');
-        if (msg) msg.innerText = "啟動異常: " + e.message;
-      });
+      // 全域錯誤監控：如果模組載入失敗，直接在畫面上顯示
+      window.onerror = function(msg, url, line) {
+        const debug = document.getElementById('debug-msg');
+        if (debug) debug.innerText = "🚨 載入錯誤: " + msg + " (L" + line + ")";
+        return false;
+      };
     </script>
     <script type="importmap">
 {
@@ -66,17 +68,6 @@
       <p id="debug-msg" style="margin-top: 10px; color: #ef4444; font-size: 12px; font-weight: bold;"></p>
     </div>
 
-    <script>
-      // 🚀 強制保險：如果 4 秒後 loader 還在，直接關掉它，讓 React 錯誤顯現出來
-      setTimeout(() => {
-        const loader = document.getElementById('initial-loader');
-        if (loader && loader.style.display !== 'none') {
-          console.warn("Loader timeout - forcing hide");
-          loader.style.opacity = '0';
-          setTimeout(() => { loader.style.display = 'none'; }, 500);
-        }
-      }, 4000);
-    </script>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

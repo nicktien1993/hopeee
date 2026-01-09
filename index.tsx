@@ -2,11 +2,16 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
-const hideLoader = () => {
+/**
+ * 強制隱藏載入動畫
+ */
+const forceHideLoader = () => {
   const loader = document.getElementById('initial-loader');
   if (loader) {
     loader.style.opacity = '0';
-    setTimeout(() => { loader.style.display = 'none'; }, 500);
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 500);
   }
 };
 
@@ -15,14 +20,27 @@ const container = document.getElementById('root');
 if (container) {
   try {
     const root = createRoot(container);
-    // 渲染
-    root.render(<App />);
-    // 成功執行到這一步就關閉載入畫面
-    hideLoader();
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    
+    // 如果代碼執行到這裡沒有崩潰，代表基本模組載入是成功的
+    // 我們在下一幀隱藏動畫
+    requestAnimationFrame(() => {
+      forceHideLoader();
+    });
+
   } catch (error) {
-    console.error("App Render Error:", error);
-    hideLoader();
+    console.error("Critical Start Error:", error);
+    forceHideLoader();
     const debug = document.getElementById('debug-msg');
-    if (debug) debug.innerText = "渲染出錯，請檢查控制台。";
+    if (debug) {
+      debug.innerText = "啟動崩潰: " + (error instanceof Error ? error.message : "未知錯誤");
+    }
   }
+} else {
+  forceHideLoader();
+  console.error("Root container not found");
 }
