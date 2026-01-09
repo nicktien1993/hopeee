@@ -24,9 +24,8 @@ const App: React.FC = () => {
   } | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<{chapter: string, sub: string} | null>(null);
 
-  // 確保 App 有跑起來的 Debug Log
   useEffect(() => {
-    console.log("✨ 魔法數學助手：App 已成功掛載");
+    console.log("✨ App Mounted Successfully");
   }, []);
 
   const handleFetchLibrary = async () => {

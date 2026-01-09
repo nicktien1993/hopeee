@@ -11,9 +11,9 @@
       
       // 偵錯監控
       window.addEventListener('error', (e) => {
+        console.error("Global error caught:", e.message);
         const msg = document.getElementById('debug-msg');
-        if (msg) msg.innerText = "🚨 系統錯誤: " + e.message;
-        console.error("Global error:", e);
+        if (msg) msg.innerText = "啟動異常: " + e.message;
       });
     </script>
     <script type="importmap">
@@ -64,20 +64,18 @@
       <div class="spinner"></div>
       <p style="margin-top: 20px; font-weight: 900; color: #1e293b;">🪄 正在召喚數學魔法...</p>
       <p id="debug-msg" style="margin-top: 10px; color: #ef4444; font-size: 12px; font-weight: bold;"></p>
-      <div id="timeout-hint" style="display: none; margin-top: 20px; text-align: center;">
-        <p style="color: #64748b; font-size: 14px; margin-bottom: 10px;">載入時間較長？請嘗試重整網頁</p>
-        <button onclick="location.reload()" style="background: #2563eb; color: white; padding: 8px 20px; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">重新整理</button>
-      </div>
     </div>
 
     <script>
-      // 如果 8 秒後還在轉，顯示重整按鈕
+      // 🚀 強制保險：如果 4 秒後 loader 還在，直接關掉它，讓 React 錯誤顯現出來
       setTimeout(() => {
-        const hint = document.getElementById('timeout-hint');
-        if (hint && document.getElementById('initial-loader').style.display !== 'none') {
-          hint.style.display = 'block';
+        const loader = document.getElementById('initial-loader');
+        if (loader && loader.style.display !== 'none') {
+          console.warn("Loader timeout - forcing hide");
+          loader.style.opacity = '0';
+          setTimeout(() => { loader.style.display = 'none'; }, 500);
         }
-      }, 8000);
+      }, 4000);
     </script>
     <script type="module" src="./index.tsx"></script>
   </body>
